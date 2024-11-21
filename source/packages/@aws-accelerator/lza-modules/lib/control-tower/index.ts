@@ -439,7 +439,10 @@ abstract class ControlTowerPreRequisites {
     landingZoneIdentifier?: string,
     managementAccountCredentials?: AssumeRoleCredentialType,
   ): Promise<{ kmsKeyArn: string } | undefined> {
+    logger.info(`SATHYA: In completePreRequisites :: invoked with region:${region}, globalRegion:${globalRegion}, landingZoneIdentifier:${landingZoneIdentifier}`);
+  
     if (!landingZoneIdentifier) {
+      logger.info(`SATHYA: In completePreRequisites :: No landingZoneIdentifier provided, validating organization`);
       await Organization.ValidateOrganization(
         globalRegion,
         region,
@@ -448,33 +451,36 @@ abstract class ControlTowerPreRequisites {
         { logArchive: accountsConfig.getLogArchiveAccount().email, audit: accountsConfig.getAuditAccount().email },
         managementAccountCredentials,
       );
-
+  
       const managementAccountId = await Organization.getManagementAccountId(
         globalRegion,
         props.solutionId,
         accountsConfig.getManagementAccount().email,
         managementAccountCredentials,
       );
-
+      logger.info(`SATHYA: In completePreRequisites :: Retrieved managementAccountId:${managementAccountId}`);
+  
       if (!props.useExistingRole) {
+        logger.info(`SATHYA: In completePreRequisites :: Creating Control Tower roles`);
         await IamRole.createControlTowerRoles(props.partition, region, props.solutionId, managementAccountCredentials);
-        // giving time to complete Role creation completes, otherwise ValidationException - CUSTOMER_ASSUME_ROLE_FAILED error occurs
-        logger.info(`Created AWS Control Tower roles, sleeping for 5 minutes for role creations to complete.`);
+        logger.info(`SATHYA: Created AWS Control Tower roles, sleeping for 5 minutes for role creations to complete.`);
         await delay(5);
       }
 
-      //
-      // Do not create accounts for US GovCloud
-      //
+      logger.info(`SATHYA: In completePreRequisites :: props.partition: ${props.partition}`)
+  
       if (props.partition !== 'aws-us-gov') {
+        logger.info(`SATHYA: In completePreRequisites :: Creating shared accounts`);
         await SharedAccount.createAccounts(
           props.configDirPath,
           globalRegion,
           props.solutionId,
           managementAccountCredentials,
         );
+      } else{
+        logger.info(`SATHYA: In completePreRequisites :: Skipping the creation of shared accounts`);
       }
-
+  
       const kmsKeyArn = await KmsKey.createControlTowerKey(
         props.partition,
         managementAccountId,
@@ -482,9 +488,11 @@ abstract class ControlTowerPreRequisites {
         props.solutionId,
         managementAccountCredentials,
       );
+      logger.info(`SATHYA: In completePreRequisites :: Created KMS key with ARN:${kmsKeyArn}`);
       return { kmsKeyArn };
     }
-
+  
+    logger.info(`SATHYA: In completePreRequisites :: LandingZoneIdentifier provided, skipping organization validation`);
     return undefined;
   }
 }
