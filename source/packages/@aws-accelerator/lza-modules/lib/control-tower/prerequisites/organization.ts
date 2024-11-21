@@ -323,8 +323,6 @@ export abstract class Organization {
     sharedAccountEmail: { logArchive: string; audit: string },
     managementAccountCredentials?: AssumeRoleCredentialType,
   ): Promise<void> {
-    logger.info(`SATHYA: In ValidateOrganization :: invoked with globalRegion:${globalRegion}, region:${region}, solutionId:${solutionId}, partition:${partition}`);
-  
     const client: OrganizationsClient = new OrganizationsClient({
       region: globalRegion,
       customUserAgent: solutionId,
@@ -335,32 +333,27 @@ export abstract class Organization {
     const validationErrors: string[] = [];
   
     if (await Organization.isIdentityCenterEnabled(region, solutionId, managementAccountCredentials)) {
-      logger.info(`SATHYA: In ValidateOrganization :: IAM Identity Center is enabled`);
       validationErrors.push(`AWS Control Tower Landing Zone cannot deploy because IAM Identity Center is configured.`);
     }
   
     if (await Organization.isOrganizationNotConfigured(client)) {
-      logger.info(`SATHYA: In ValidateOrganization :: AWS Organizations not configured`);
       validationErrors.push(
         `AWS Control Tower Landing Zone cannot deploy because AWS Organizations have not been configured for the environment.`,
       );
     } else {
       if (await Organization.isAnyOrganizationServiceEnabled(client)) {
-        logger.info(`SATHYA: In ValidateOrganization :: AWS Organizations services are enabled`);
         validationErrors.push(
           `AWS Control Tower Landing Zone cannot deploy because AWS Organizations have services enabled.`,
         );
       }
   
       if (await Organization.isOrganizationsHaveOrganizationalUnits(client)) {
-        logger.info(`SATHYA: In ValidateOrganization :: Multiple organizational units found`);
         validationErrors.push(
           `AWS Control Tower Landing Zone cannot deploy because there are multiple organizational units in AWS Organizations.`,
         );
       }
   
       if (await Organization.isOrganizationHaveAdditionalAccounts(client, partition, sharedAccountEmail)) {
-        logger.info(`SATHYA: In ValidateOrganization :: Additional accounts found`);
         if (partition === 'aws-us-gov') {
           validationErrors.push(
             `Either AWS Organizations does not have required shared accounts (LogArchive and Audit) or have other accounts.`,
@@ -374,13 +367,11 @@ export abstract class Organization {
     }
   
     if (validationErrors.length > 0) {
-      logger.info(`SATHYA: In ValidateOrganization :: Validation errors found: ${validationErrors.length}`);
       throw new Error(
         `AWS Organization validation has ${validationErrors.length} issue(s):\n${validationErrors.join('\n')}`,
       );
     }
   
-    logger.info(`SATHYA: In ValidateOrganization :: Enabling all features for AWS Organizations`);
     await Organization.enableOrganizationsAllFeature(client);
   }
 }
