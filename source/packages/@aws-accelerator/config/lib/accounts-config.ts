@@ -277,16 +277,16 @@ export class AccountsConfig implements i.IAccountsConfig {
   }
 
   public getAccountId(name: string): string {
-    logger.info(`SATHYA: In getAccountId :: invoked with name:{name}`)
+    logger.info(`SATHYA: In getAccountId :: invoked with name:${name}`)
     const email = this.getAccount(name).email;
 
     logger.info(`SATHYA: Current accountIds: ${JSON.stringify(this.accountIds)}`);
 
-    logger.info(`SATHYA: In getAccountId :: getAccount email:{email} for name:{name}`)
+    logger.info(`SATHYA: In getAccountId :: getAccount email:${email} for name:${name}`)
     const accountId = this.accountIds?.find(item => item.email === email)?.accountId;
     if (accountId) {
 
-      logger.info(`SATHYA: In getAccountId :: returned  accountId:{accountId} for name:{name}`)
+      logger.info(`SATHYA: In getAccountId :: returned  accountId:${accountId} for name:${name}`)
       return accountId;
     }
 
